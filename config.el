@@ -21,6 +21,7 @@
 ;; They all accept either a font-spec, font string ("Input Mono-12"), or xlfd
 ;; font string. You generally only need these two:
 (setq doom-font (font-spec :family "Source Code Pro" :size 14))
+(setq doom-big-font (font-spec :family "Source Code Pro" :size 40))
 
 ;; There are two ways to load a theme. Both assume the theme is installed and
 ;; available. You can either set `doom-theme' or manually load a theme with the
@@ -44,15 +45,41 @@
 ;;
 ;; You can also try 'gd' (or 'C-c g d') to jump to their definition and see how
 ;; they are implemented.
+;;
+;; ----------------
+;; Variables
+;; ----------------
+(setq +org-base-path "~/Dropbox/org/")
+(setq +daypage-path (concat +org-base-path "days/"))
+(setq +org-wiki-path (concat +org-base-path "wiki/"))
+(setq +org-wiki-index (concat +org-wiki-path "index.md"))
+(setq +org-todo-file (concat +org-base-path "todo.org"))
+(setq +org-inbox-file (concat +org-base-path "inbox.org"))
+(setq +org-incubator-file (concat +org-base-path "incubator.org"))
+(setq +org-quotes-file (concat +org-wiki-path "quotes.org"))
 
+;; ----------------
+;; My Functions
+;; ----------------
+
+(defun open-wiki ()
+  (interactive)
+  (find-file
+   (expand-file-name +org-wiki-index)))
+
+;; ----------------
+;; Org Stuff
+;; ----------------
 (after! org (setq
+  org-capture-templates '()
   org-directory "~/Dropbox/org/gtd/"
   org-startup-indented t
   org-pretty-entities t
-  org-outline-path-complete-in-steps nil
-  org-refile-use-outline-path t
+  org-want-todo-bindings t
+  ;;org-outline-path-complete-in-steps nil
+  ;;org-refile-use-outline-path t
   org-todo-keywords '((sequence "TODO(t)" "WAITING(w)" "MAYBE(m)" "|" "DONE(d)" "CANCELLED(c)"))
-  org-tag-alist '(("@home" . ?h) ("@school" . ?s) ("buy" . ?b) ("DONE" . ?d) ("PROJECT" . ?p) ("AREA" . ?a))
+  org-tag-alist '(("@home" . ?h) ("@school" . ?s) ("buy" . ?b) ("PROJECT" . ?p))
   org-archive-location (concat org-directory "archive.org::")
   org-stuck-projects '("+PROJECT/-MAYBE-DONE-CANCELLED" ("TODO") nil "\\<IGNORE\\>")
   org-agenda-files
@@ -87,17 +114,44 @@
               ((org-agenda-overriding-header "Actions")
                 (org-agenda-files (list (concat org-directory "todo.org")))
                 ))))))
-(setq org-capture-templates
-    '(("t" "Todo" entry (file+headline (lambda() (concat org-directory "inbox.org")) "Inbox")
-        "** TODO %?\n%U" :empty-lines 1)
-      ("T" "Todo with Clipboard" entry (file+headline (lambda () (concat org-directory "inbox.org")) "Inbox")
-        "** TODO %?\n%U\n   %c" :empty-lines 1)
-      ("n" "Note" entry (file+headline (lambda () (concat org-directory "inbox.org")) "Inbox")
-        "** NOTE %?\n%U" :empty-lines 1)
-      ("I" "Incubator" entry (file (lambda () (concat org-directory "incubator.org")))
-        "** %?\n%U" :empty-lines 1)))
+
+
+;; ----------------
+;; Org Captures
+;; ----------------
+
+(after! org
+  (add-to-list 'org-capture-templates
+      '("t" "Todo" entry (file +org-inbox-file)
+        "* TODO %?\n%U" :empty-lines 1)))
+
+(after! org
+  (add-to-list 'org-capture-templates
+      '("T" "Todo with Clipboard" entry (file +org-inbox-file)
+        "* TODO %?\n%U\n   %c" :empty-lines 1)))
+
+(after! org
+  (add-to-list 'org-capture-templates
+      '("n" "Note" entry (file +org-inbox-file)
+        "* NOTE %?\n%U" :empty-lines 1)))
+
+(after! org
+  (add-to-list 'org-capture-templates
+      '("r" "Research" entry (file +org-inbox-file)
+        "* RESEARCH %?\n%U" :empty-lines 1)))
+
+(after! org
+  (add-to-list 'org-capture-templates
+      '("I" "Incubator" entry (file +org-incubator-file)
+        "* %?\n%U" :empty-lines 1)))
+
+
+(after! org
+  (add-to-list 'org-capture-templates
+      '("Q" "Quote" entry (file +org-quotes-file)
+        "* %?\n%U" :empty-lines 1)))
 ;; ------------------
-;; Emacs Settings
+;; General Emacs Settings
 ;; ------------------
 
 (global-visual-line-mode t) ; wrap lines at border
@@ -109,4 +163,38 @@
 ;; ------------------
 
 (map! :nv ";" 'evil-ex) ; make semi-colon behave as colon in evil mode
-(map! :n "t" 'org-todo) ; make t open org-todo on line
+
+(after! org
+  (map! :map evil-org-mode-map
+        :localleader
+        :desc "Create/Edit Todo" "t" #'org-todo
+        :desc "Schedule" "s" #'org-schedule
+        :desc "Deadline" "d" #'org-deadline
+        :desc "Refile" "r" #'org-refile
+        :desc "Filter" "f" #'org-match-sparse-tree))
+
+(map! :leader
+      :prefix "n"
+      "o" #'todays-daypage
+      "O" #'find-daypage
+      "w" #'open-wiki)
+
+;; ----------------
+;; Daypage Stuff
+;; from https://github.com/ar1a/dotfiles/blob/master/emacs/.doom.d/%2Borg.el
+;; ----------------
+(defun find-daypage (&optional date)
+  "Go to the day page for the specified date, or today's if none is specified"
+  (interactive (list (org-read-date)))
+  (setq date (or date (format-time-string "%Y-%m-%d" (current-time))))
+  (find-file
+   (expand-file-name (concat +daypage-path date ".org"))))
+
+(defun todays-daypage ()
+  "Go straight to today's day page without prompting for a date."
+  (interactive)
+  (find-daypage))
+
+(set-file-template!
+ "/[0-9]\\{4\\}\\(?:-[0-9]\\{2\\}\\)\\{2\\}\\.org$"
+ :trigger "__daypage")
