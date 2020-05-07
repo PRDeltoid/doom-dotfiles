@@ -52,11 +52,11 @@
 (setq +org-base-path "~/Dropbox/org/")
 (setq +daypage-path (concat +org-base-path "days/"))
 (setq +org-wiki-path (concat +org-base-path "wiki/"))
-(setq +org-wiki-index (concat +org-wiki-path "index.md"))
+(setq +org-wiki-index (concat +org-wiki-path "index.org"))
 (setq +org-todo-file (concat +org-base-path "todo.org"))
 (setq +org-inbox-file (concat +org-base-path "inbox.org"))
 (setq +org-incubator-file (concat +org-base-path "incubator.org"))
-(setq +org-quotes-file (concat +org-wiki-path "quotes.org"))
+(setq +org-quotes-file (concat +org-wiki-path "personal/quotes.org"))
 
 ;; ----------------
 ;; My Functions
@@ -77,15 +77,15 @@
   org-pretty-entities t
   org-want-todo-bindings t
   ;;org-outline-path-complete-in-steps nil
-  ;;org-refile-use-outline-path t
+  org-refile-use-outline-path t
   org-todo-keywords '((sequence "TODO(t)" "WAITING(w)" "MAYBE(m)" "|" "DONE(d)" "CANCELLED(c)"))
   org-tag-alist '(("@home" . ?h) ("@school" . ?s) ("buy" . ?b) ("PROJECT" . ?p))
   org-archive-location (concat org-directory "archive.org::")
   org-stuck-projects '("+PROJECT/-MAYBE-DONE-CANCELLED" ("TODO") nil "\\<IGNORE\\>")
   org-agenda-files
-        (list (concat org-directory "todo.org")
-              (concat org-directory "inbox.org")
-              (concat org-directory "incubator.org")))
+        (list +org-todo-file
+              +org-inbox-file
+              +org-incubator-file))
   org-refile-targets
       '((nil :maxlevel . 2)
         (org-agenda-files :maxlevel . 2))
@@ -98,28 +98,33 @@
       ("W" todo-tree "WAITING")
       ("r" "Refile"
         ((todo "TODO"
-              ((org-agenda-files (list (concat org-directory "inbox.org")))))))
+              ((org-agenda-files (list +org-inbox-file))))))
       ("h" tags-todo "@home")
       ("s" tags-todo "@school")
-      ("n" todo "NOTE")
-      ("p" tags-todo "PROJECT" nil)
-      ("A" tags-todo "AREA" nil)
       ("a" "My agenda"
         ((org-agenda-list)
         (todo "TODO"
               ((org-agenda-overriding-header "Refile")
-                (org-agenda-files (list (concat org-directory "inbox.org")))))
+                (org-agenda-files (list +org-inbox-file))))
         (org-agenda-list-stuck-projects)
         (todo "TODO"
               ((org-agenda-overriding-header "Actions")
-                (org-agenda-files (list (concat org-directory "todo.org")))
+                (org-agenda-files (list +org-todo-file))
                 ))))))
 
 
 ;; ----------------
 ;; Org Captures
 ;; ----------------
-
+;; %t - timestamp, date only, also %^t for "prompt for date"
+;; %T - date-time stamp
+;; %U - inactive timestamp (???)
+;; %c - clipboard head, %C - interactive clipboard selection
+;; %f - name of file capture called from
+;; %F - full path of file capture was called from
+;; %^g - prompt for tags, also %^G for tag completion from tags in all agenda files
+;; %^{PROMPT} - prompt for input using PROMPT as a prompt. Replace with entered value
+;; %? - position cursor here after template has been expanded
 (after! org
   (add-to-list 'org-capture-templates
       '("t" "Todo" entry (file +org-inbox-file)
@@ -149,7 +154,7 @@
 (after! org
   (add-to-list 'org-capture-templates
       '("Q" "Quote" entry (file +org-quotes-file)
-        "* %?\n%U" :empty-lines 1)))
+        "* %?\n" :empty-lines 1)))
 ;; ------------------
 ;; General Emacs Settings
 ;; ------------------
@@ -178,6 +183,22 @@
       "o" #'todays-daypage
       "O" #'find-daypage
       "w" #'open-wiki)
+
+;;Make unhiding link prettifying syntax easier
+(after! org
+  (map! :map evil-org-mode-map
+        :localleader
+        :prefix "l"
+        "t" #'org-toggle-link-display))
+
+(after! org-roam
+        (map! :leader
+            :prefix "n"
+            :desc "org-roam" "l" #'org-roam
+            :desc "org-roam-insert" "i" #'org-roam-insert
+            :desc "org-roam-switch-to-buffer" "b" #'org-roam-switch-to-buffer
+            :desc "org-roam-find-file" "f" #'org-roam-find-file
+            :desc "org-roam-capture" "c" #'org-roam-capture))
 
 ;; ----------------
 ;; Daypage Stuff

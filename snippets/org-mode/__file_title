@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name:  Title
+# key: __file_title
+# --
+#+TITLE: $0
