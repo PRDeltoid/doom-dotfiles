@@ -50,13 +50,22 @@
 ;; Variables
 ;; ----------------
 (setq +org-base-path "~/Dropbox/org/")
+(setq +org-gtd-path (concat +org-base-path "gtd/"))
 (setq +daypage-path (concat +org-base-path "days/"))
 (setq +org-wiki-path (concat +org-base-path "wiki/"))
 (setq +org-wiki-index (concat +org-wiki-path "index.org"))
-(setq +org-todo-file (concat +org-base-path "todo.org"))
-(setq +org-inbox-file (concat +org-base-path "inbox.org"))
-(setq +org-incubator-file (concat +org-base-path "incubator.org"))
+(setq +org-todo-file (concat +org-gtd-path "todo.org"))
+(setq +org-inbox-file (concat +org-gtd-path "inbox.org"))
+(setq +org-incubator-file (concat +org-gtd-path "incubator.org"))
 (setq +org-quotes-file (concat +org-wiki-path "personal/quotes.org"))
+
+(setq fill-column 90)
+
+;; ----------------
+;; Org-Roam
+;; ----------------
+(setq org-roam-directory "~/Dropbox/org/roam")
+(add-to-list 'exec-path "~/Documents/Programs/sqlite-tools-win32-x86-3340000")
 
 ;; ----------------
 ;; My Functions
@@ -66,6 +75,42 @@
   (interactive)
   (find-file
    (expand-file-name +org-wiki-index)))
+
+
+;; Allow search of my personal knowledgebase
+(defun my/org-notes-search ()
+  "Perform a text search on `org-wiki-path'."
+  (interactive)
+  (require 'org)
+  (let ((default-directory +org-wiki-path))
+    (+default/search-project-for-symbol-at-point "")))
+
+(defun my/old-org-screenshot ()
+  "Take a screenshot into a time stamped unique-named file in the
+same directory as the org-buffer and insert a link to this file."
+  (interactive)
+  (setq filename
+        (concat
+         (make-temp-name
+          (concat "images\\"
+                  (buffer-file-name)
+                  "_"
+                  (format-time-string "%Y%m%d_%H%M%S_")) ) ".png"))
+  (shell-command "snippingtool /clip")
+  (shell-command (concat "powershell -command \"Add-Type -AssemblyName System.Windows.Forms;if ($([System.Windows.Forms.Clipboard]::ContainsImage())) {$image = [System.Windows.Forms.Clipboard]::GetImage();[System.Drawing.Bitmap]$image.Save('" filename "',[System.Drawing.Imaging.ImageFormat]::Png); Write-Output 'clipboard content saved as file'} else {Write-Output 'clipboard does not contain image data'}\""))
+  (insert (concat "[[file:" filename "]]"))
+  (org-display-inline-images))
+
+;; ----------------
+;; Doom Stuff
+;; ----------------
+
+;; Add a Wiki link to the dashboard menu
+(setq +doom-dashboard-menu-sections
+      (cons '("Open wiki"
+        :icon (all-the-icons-octicon "clippy" :face 'doom-dashboard-menu-title)
+        :action open-wiki)
+      +doom-dashboard-menu-sections))
 
 ;; ----------------
 ;; Org Stuff
@@ -77,7 +122,7 @@
   org-pretty-entities t
   org-want-todo-bindings t
   ;;org-outline-path-complete-in-steps nil
-  org-refile-use-outline-path t
+  org-refile-use-outline-path 'file
   org-todo-keywords '((sequence "TODO(t)" "WAITING(w)" "MAYBE(m)" "|" "DONE(d)" "CANCELLED(c)"))
   org-tag-alist '(("@home" . ?h) ("@school" . ?s) ("buy" . ?b) ("PROJECT" . ?p))
   org-archive-location (concat org-directory "archive.org::")
@@ -85,7 +130,8 @@
   org-agenda-files
         (list +org-todo-file
               +org-inbox-file
-              +org-incubator-file))
+              +org-incubator-file)
+  org-hide-emphasis-markers t)
   org-refile-targets
       '((nil :maxlevel . 2)
         (org-agenda-files :maxlevel . 2))
@@ -111,8 +157,6 @@
               ((org-agenda-overriding-header "Actions")
                 (org-agenda-files (list +org-todo-file))
                 ))))))
-
-
 ;; ----------------
 ;; Org Captures
 ;; ----------------
@@ -155,6 +199,7 @@
   (add-to-list 'org-capture-templates
       '("Q" "Quote" entry (file +org-quotes-file)
         "* %?\n" :empty-lines 1)))
+
 ;; ------------------
 ;; General Emacs Settings
 ;; ------------------
@@ -167,7 +212,8 @@
 ;; Keymaps
 ;; ------------------
 
-(map! :nv ";" 'evil-ex) ; make semi-colon behave as colon in evil mode
+(map! :nv ";" 'evil-ex
+      :n "t" 'org-todo) ; make semi-colon behave as colon in evil mode
 
 (after! org
   (map! :map evil-org-mode-map
@@ -176,13 +222,21 @@
         :desc "Schedule" "s" #'org-schedule
         :desc "Deadline" "d" #'org-deadline
         :desc "Refile" "r" #'org-refile
-        :desc "Filter" "f" #'org-match-sparse-tree))
+        :desc "Filter" "f" #'org-match-sparse-tree
+        :desc "Screenshot" "i" #'my/org-download-clipboard))
 
 (map! :leader
       :prefix "n"
       "o" #'todays-daypage
       "O" #'find-daypage
-      "w" #'open-wiki)
+      "w" #'open-wiki
+      "." #'my/org-notes-search)
+
+;; Shorthand for opening wiki
+(map! :leader
+      "W" #'open-wiki ;;Shorthand for opening wiki
+      :desc "Open scratch buffer" "X" #'doom/open-scratch-buffer ;;Swap scratch buffer with capture
+      :desc "org-capture" "x" #'org-capture) ;; Swap capture with scratch buffer
 
 ;;Make unhiding link prettifying syntax easier
 (after! org
@@ -191,14 +245,24 @@
         :prefix "l"
         "t" #'org-toggle-link-display))
 
-(after! org-roam
-        (map! :leader
-            :prefix "n"
-            :desc "org-roam" "l" #'org-roam
-            :desc "org-roam-insert" "i" #'org-roam-insert
-            :desc "org-roam-switch-to-buffer" "b" #'org-roam-switch-to-buffer
-            :desc "org-roam-find-file" "f" #'org-roam-find-file
-            :desc "org-roam-capture" "c" #'org-roam-capture))
+(use-package! org-download
+  :after org)
+
+;; ----------------
+;; Org-Download Stuff
+;; ----------------
+(after! org
+  (setq org-download-screenshot-method "convert clipboard: %s")
+  (setq-default org-download-image-dir "./images")
+  (setq-default org-download-heading-lvl nil)
+  (setq org-download-screenshot-file "C:/Users/Taylor/AppData/Local/Temp/screenshot.png")
+  (setq org-download-method 'directory))
+
+(defun my/org-download-clipboard ()
+  (interactive)
+  (require 'org-download)
+  (org-download-clipboard)
+  (org-download-rename-last-file))
 
 ;; ----------------
 ;; Daypage Stuff
@@ -219,3 +283,7 @@
 (set-file-template!
  "/[0-9]\\{4\\}\\(?:-[0-9]\\{2\\}\\)\\{2\\}\\.org$"
  :trigger "__daypage")
+
+
+;;Make it so SPC-f-f searches in the default org dir
+(cd +org-base-path)

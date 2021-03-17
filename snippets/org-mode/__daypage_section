@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: Daypage Divider
+# key: __daypage_divider
+# condition: t                         
+# --
+---
+`(let ((x (org-time-stamp '(16) t ))))`
+
+$0
