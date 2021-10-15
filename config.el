@@ -101,6 +101,14 @@ same directory as the org-buffer and insert a link to this file."
   (insert (concat "[[file:" filename "]]"))
   (org-display-inline-images))
 
+;; Org "Scratch" buffer popup
+(defun my-org-scratch-buffer ()
+    "Activate TEMP org buffer"
+    (interactive)
+    (pop-to-buffer
+     (find-file-noselect "~/Dropbox/org/temp.org"))
+    (end-of-buffer))
+
 ;; ----------------
 ;; Doom Stuff
 ;; ----------------
@@ -208,7 +216,14 @@ same directory as the org-buffer and insert a link to this file."
 (setq create-lockfiles nil) ; turn off lock files
 (setq display-line-numbers-type 'relative) ; relative line numbers
 
-;; ------------------
+;; Make scrolling over pictures less shitty
+;; (pixel-scroll-mode)
+;; (setq pixel-dead-time 0) ; Never go back to the old scrolling behaviour.
+;; (setq pixel-resolution-fine-flag t) ; Scroll by number of pixels instead of lines (t = frame-char-height pixels).
+;; (setq mouse-wheel-scroll-amount '(1)) ; Distance in pixel-resolution to scroll each mouse wheel event.
+;; (setq mouse-wheel-progressive-speed nil) ; Progressive speed is too fast for me.
+
+;;
 ;; Keymaps
 ;; ------------------
 
@@ -235,7 +250,7 @@ same directory as the org-buffer and insert a link to this file."
 ;; Shorthand for opening wiki
 (map! :leader
       "W" #'open-wiki ;;Shorthand for opening wiki
-      :desc "Open scratch buffer" "X" #'doom/open-scratch-buffer ;;Swap scratch buffer with capture
+      :desc "Open org-scratch buffer" "X" #'my-org-scratch-buffer ;;Swap scratch buffer with capture
       :desc "org-capture" "x" #'org-capture) ;; Swap capture with scratch buffer
 
 ;;Make unhiding link prettifying syntax easier
@@ -256,7 +271,8 @@ same directory as the org-buffer and insert a link to this file."
   (setq-default org-download-image-dir "./images")
   (setq-default org-download-heading-lvl nil)
   (setq org-download-screenshot-file "C:/Users/Taylor/AppData/Local/Temp/screenshot.png")
-  (setq org-download-method 'directory))
+  (setq org-download-method 'directory)
+  (setq org-download-annotate-function (lambda (_link) "")))
 
 (defun my/org-download-clipboard ()
   (interactive)
