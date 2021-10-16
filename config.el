@@ -61,16 +61,10 @@
 
 (setq fill-column 90)
 
-;; ----------------
-;; Org-Roam
-;; ----------------
-(setq org-roam-directory "~/Dropbox/org/roam")
-(add-to-list 'exec-path "~/Documents/Programs/sqlite-tools-win32-x86-3340000")
 
 ;; ----------------
 ;; My Functions
 ;; ----------------
-
 (defun open-wiki ()
   (interactive)
   (find-file
@@ -84,30 +78,6 @@
   (require 'org)
   (let ((default-directory +org-wiki-path))
     (+default/search-project-for-symbol-at-point "")))
-
-(defun my/old-org-screenshot ()
-  "Take a screenshot into a time stamped unique-named file in the
-same directory as the org-buffer and insert a link to this file."
-  (interactive)
-  (setq filename
-        (concat
-         (make-temp-name
-          (concat "images\\"
-                  (buffer-file-name)
-                  "_"
-                  (format-time-string "%Y%m%d_%H%M%S_")) ) ".png"))
-  (shell-command "snippingtool /clip")
-  (shell-command (concat "powershell -command \"Add-Type -AssemblyName System.Windows.Forms;if ($([System.Windows.Forms.Clipboard]::ContainsImage())) {$image = [System.Windows.Forms.Clipboard]::GetImage();[System.Drawing.Bitmap]$image.Save('" filename "',[System.Drawing.Imaging.ImageFormat]::Png); Write-Output 'clipboard content saved as file'} else {Write-Output 'clipboard does not contain image data'}\""))
-  (insert (concat "[[file:" filename "]]"))
-  (org-display-inline-images))
-
-;; Org "Scratch" buffer popup
-(defun my-org-scratch-buffer ()
-    "Activate TEMP org buffer"
-    (interactive)
-    (pop-to-buffer
-     (find-file-noselect "~/Dropbox/org/temp.org"))
-    (end-of-buffer))
 
 ;; ----------------
 ;; Doom Stuff
@@ -146,6 +116,8 @@ same directory as the org-buffer and insert a link to this file."
   (add-hook 'org-mode-hook #'visual-line-mode)
   )
 
+(if (getenv "WORK")
+    (load! "work-config.el" "work-config"))
 
 (setq org-agenda-custom-commands
     '(
@@ -250,7 +222,7 @@ same directory as the org-buffer and insert a link to this file."
 ;; Shorthand for opening wiki
 (map! :leader
       "W" #'open-wiki ;;Shorthand for opening wiki
-      :desc "Open org-scratch buffer" "X" #'my-org-scratch-buffer ;;Swap scratch buffer with capture
+      :desc "Open org-scratch buffer" "X" #'doom/open-scratch-buffer ;;Swap scratch buffer with capture
       :desc "org-capture" "x" #'org-capture) ;; Swap capture with scratch buffer
 
 ;;Make unhiding link prettifying syntax easier
