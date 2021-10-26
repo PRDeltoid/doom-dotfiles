@@ -116,8 +116,6 @@
   (add-hook 'org-mode-hook #'visual-line-mode)
   )
 
-(if (getenv "WORK")
-    (load! "work-config.el" "work-config"))
 
 (setq org-agenda-custom-commands
     '(
@@ -272,6 +270,13 @@
  "/[0-9]\\{4\\}\\(?:-[0-9]\\{2\\}\\)\\{2\\}\\.org$"
  :trigger "__daypage")
 
+;; ----------
+;; Domain-specific config loading
+;; Occurs at the end to make sure all the changes above are replaced 
+;; with the more specific config being loaded below
+;; ----------
+(if (getenv "WORK")
+    (load! "work-config.el" "~/.doom.d/work-config"))
 
 ;;Make it so SPC-f-f searches in the default org dir
 (cd +org-base-path)
