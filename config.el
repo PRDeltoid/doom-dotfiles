@@ -91,6 +91,13 @@
       +doom-dashboard-menu-sections))
 
 ;; ----------------
+;; Profiles Stuff
+;; ----------------
+
+(if (getenv "WORK")
+    (load! "work-config.el" "work-config"))
+
+;; ----------------
 ;; Org Stuff
 ;; ----------------
 (after! org (setq
@@ -115,7 +122,6 @@
         (org-agenda-files :maxlevel . 2))
   (add-hook 'org-mode-hook #'visual-line-mode)
   )
-
 
 (setq org-agenda-custom-commands
     '(
