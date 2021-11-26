@@ -102,7 +102,7 @@
   ;;org-outline-path-complete-in-steps nil
   org-refile-use-outline-path 'file
   org-todo-keywords '((sequence "TODO(t)" "WAITING(w)" "MAYBE(m)" "|" "DONE(d)" "CANCELLED(c)"))
-  org-tag-alist '(("@home" . ?h) ("@school" . ?s) ("buy" . ?b) ("PROJECT" . ?p))
+  org-tag-alist '(("buy" . ?b) ("PROJECT" . ?p))
   org-archive-location (concat org-directory "archive.org::")
   org-stuck-projects '("+PROJECT/-MAYBE-DONE-CANCELLED" ("TODO") nil "\\<IGNORE\\>")
   org-agenda-files
@@ -115,25 +115,34 @@
         (org-agenda-files :maxlevel . 2))
   (add-hook 'org-mode-hook #'visual-line-mode)
   )
+(after! org (setq
+             org-tag-alist '(("@home" . ?h)
+                             ("MagicMirror" . ?m) ("MediaCenter" . ?c))))
+
+(after! org
+  (add-to-list 'org-capture-templates
+      '("b" "Bug" entry (file +org-todo-file)
+        "* BUG %?\n%U" :empty-lines 1)))
 
 (setq org-agenda-custom-commands
-    '(
-      ("W" todo-tree "WAITING")
-      ("r" "Refile"
-        ((todo "TODO"
+  '(
+    ("h" tags-todo "@home")
+    ("W" todo-tree "WAITING")
+    ("r" "Refile"
+      ((todo "TODO"
               ((org-agenda-files (list +org-inbox-file))))))
-      ("h" tags-todo "@home")
-      ("s" tags-todo "@school")
-      ("a" "My agenda"
-        ((org-agenda-list)
-        (todo "TODO"
-              ((org-agenda-overriding-header "Refile")
-                (org-agenda-files (list +org-inbox-file))))
-        (org-agenda-list-stuck-projects)
-        (todo "TODO"
-              ((org-agenda-overriding-header "Actions")
-                (org-agenda-files (list +org-todo-file))
-                ))))))
+    ("a" "My agenda"
+      (tags-todo "@home"
+            ((org-agenda-overriding-header "Home")(org-agenda-sorting-strategy '(todo-state-up))))
+      (tags-todo "MediaCenter"
+            ((org-agenda-overriding-header "Media Center")(org-agenda-sorting-strategy '(todo-state-up))))
+      (tags-todo "MagicMirror"
+            ((org-agenda-overriding-header "Magic Mirror")(org-agenda-sorting-strategy '(todo-state-up))))
+      (tags-todo "-{.*}"
+            ((org-agenda-overriding-header "Untagged")(org-agenda-sorting-strategy '(todo-state-up))))
+      (todo "TODO"
+            ((org-agenda-overriding-header "Refile")
+              (org-agenda-files (list +org-inbox-file)))))))
 ;; ----------------
 ;; Org Captures
 ;; ----------------
