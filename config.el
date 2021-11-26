@@ -56,6 +56,7 @@
 (setq +org-wiki-index (concat +org-wiki-path "index.org"))
 (setq +org-todo-file (concat +org-gtd-path "todo.org"))
 (setq +org-inbox-file (concat +org-gtd-path "inbox.org"))
+(setq +org-wiki-inbox-file (concat +org-wiki-path "wiki_inbox.org"))
 (setq +org-incubator-file (concat +org-gtd-path "incubator.org"))
 (setq +org-quotes-file (concat +org-wiki-path "personal/quotes.org"))
 
@@ -102,7 +103,7 @@
   ;;org-outline-path-complete-in-steps nil
   org-refile-use-outline-path 'file
   org-todo-keywords '((sequence "TODO(t)" "WAITING(w)" "MAYBE(m)" "|" "DONE(d)" "CANCELLED(c)"))
-  org-tag-alist '(("buy" . ?b) ("PROJECT" . ?p))
+  org-tag-alist '(("@home" . ?h) ("@self" . ?s) ("Testbrain" . ?t) ("Misc" . ?m)("MagicMirror" . ?a) ("PiNAS" . ?c))
   org-archive-location (concat org-directory "archive.org::")
   org-stuck-projects '("+PROJECT/-MAYBE-DONE-CANCELLED" ("TODO") nil "\\<IGNORE\\>")
   org-agenda-files
@@ -115,9 +116,6 @@
         (org-agenda-files :maxlevel . 2))
   (add-hook 'org-mode-hook #'visual-line-mode)
   )
-(after! org (setq
-             org-tag-alist '(("@home" . ?h)
-                             ("MagicMirror" . ?m) ("MediaCenter" . ?c))))
 
 (after! org
   (add-to-list 'org-capture-templates
@@ -132,17 +130,62 @@
       ((todo "TODO"
               ((org-agenda-files (list +org-inbox-file))))))
     ("a" "My agenda"
-      (tags-todo "@home"
+      ((tags-todo "@home"
             ((org-agenda-overriding-header "Home")(org-agenda-sorting-strategy '(todo-state-up))))
-      (tags-todo "MediaCenter"
-            ((org-agenda-overriding-header "Media Center")(org-agenda-sorting-strategy '(todo-state-up))))
+       (tags-todo "@self"
+            ((org-agenda-overriding-header "Self Improvement")(org-agenda-sorting-strategy '(todo-state-up))))
+       (tags-todo "Misc"
+            ((org-agenda-overriding-header "Miscellaneous")(org-agenda-sorting-strategy '(todo-state-up))))
+      (tags-todo "Testbrain"
+            ((org-agenda-overriding-header "Testbrain")(org-agenda-sorting-strategy '(todo-state-up))))
+      (tags-todo "PiNAS"
+            ((org-agenda-overriding-header "Pi NAS")(org-agenda-sorting-strategy '(todo-state-up))))
       (tags-todo "MagicMirror"
             ((org-agenda-overriding-header "Magic Mirror")(org-agenda-sorting-strategy '(todo-state-up))))
       (tags-todo "-{.*}"
-            ((org-agenda-overriding-header "Untagged")(org-agenda-sorting-strategy '(todo-state-up))))
+            ((org-agenda-overriding-header "Untagged")(org-agenda-files(list +org-todo-file))(org-agenda-sorting-strategy '(todo-state-up))))
       (todo "TODO"
             ((org-agenda-overriding-header "Refile")
-              (org-agenda-files (list +org-inbox-file)))))))
+              (org-agenda-files (list +org-inbox-file))))
+      (todo "TODO"
+            ((org-agenda-overriding-header "Incubator")
+             (org-agenda-files (list +org-incubator-file))))))))
+
+;; Delete empty org agenda sections
+(defun org-agenda-delete-empty-blocks ()
+    "Remove empty agenda blocks.
+  A block is identified as empty if there are fewer than 2
+  non-empty lines in the block (excluding the line with
+  `org-agenda-block-separator' characters)."
+    (when org-agenda-compact-blocks
+      (user-error "Cannot delete empty compact blocks"))
+    (setq buffer-read-only nil)
+    (save-excursion
+      (goto-char (point-min))
+      (let* ((blank-line-re "^\\s-*$")
+             (content-line-count (if (looking-at-p blank-line-re) 0 1))
+             (start-pos (point))
+             (block-re (format "%c\\{10,\\}" org-agenda-block-separator)))
+        (while (and (not (eobp)) (forward-line))
+          (cond
+           ((looking-at-p block-re)
+            (when (< content-line-count 2)
+              (delete-region start-pos (1+ (point-at-bol))))
+            (setq start-pos (point))
+            (forward-line)
+            (setq content-line-count (if (looking-at-p blank-line-re) 0 1)))
+           ((not (looking-at-p blank-line-re))
+            (setq content-line-count (1+ content-line-count)))))
+        (when (< content-line-count 2)
+          (delete-region start-pos (point-max)))
+        (goto-char (point-min))
+        ;; The above strategy can leave a separator line at the beginning
+        ;; of the buffer.
+        (when (looking-at-p block-re)
+          (delete-region (point) (1+ (point-at-eol))))))
+    (setq buffer-read-only t))
+
+  (add-hook 'org-agenda-finalize-hook #'org-agenda-delete-empty-blocks)
 ;; ----------------
 ;; Org Captures
 ;; ----------------
@@ -157,28 +200,33 @@
 ;; %? - position cursor here after template has been expanded
 (after! org
   (add-to-list 'org-capture-templates
-      '("t" "Todo" entry (file +org-inbox-file)
+      '("t" "Todo" entry (file +org-todo-file)
         "* TODO %?\n%U" :empty-lines 1)))
 
 (after! org
   (add-to-list 'org-capture-templates
-      '("T" "Todo with Clipboard" entry (file +org-inbox-file)
+      '("T" "Todo with Clipboard" entry (file +org-todo-file)
         "* TODO %?\n%U\n   %c" :empty-lines 1)))
 
 (after! org
   (add-to-list 'org-capture-templates
-      '("n" "Note" entry (file +org-inbox-file)
+      '("n" "Note" entry (file +org-wiki-inbox-file)
         "* NOTE %?\n%U" :empty-lines 1)))
 
 (after! org
   (add-to-list 'org-capture-templates
-      '("r" "Research" entry (file +org-inbox-file)
+      '("r" "Research" entry (file +org-todo-file)
         "* RESEARCH %?\n%U" :empty-lines 1)))
 
 (after! org
   (add-to-list 'org-capture-templates
+      '("i" "Inbox TODO" entry (file +org-inbox-file)
+        "* TODO %?\n%U" :empty-lines 1)))
+
+(after! org
+  (add-to-list 'org-capture-templates
       '("I" "Incubator" entry (file +org-incubator-file)
-        "* %?\n%U" :empty-lines 1)))
+        "* TODO %?\n%U" :empty-lines 1)))
 
 
 (after! org
